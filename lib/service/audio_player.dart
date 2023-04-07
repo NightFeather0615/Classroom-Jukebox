@@ -1,7 +1,8 @@
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:js';
 import 'dart:convert';
-import 'dart:math';
+import 'package:js/js.dart';
 
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
@@ -41,12 +42,19 @@ class SongData {
   }
 }
 
+
+@JS('playerEndedCallback')
+external set _playerEndedCallback(void Function() f);
+
+@JS('playerTimeUpdateCallback')
+external set _playerTimeUpdateCallback(void Function(int) f);
+
 class AudioPlayerService extends ChangeNotifier {
   AudioPlayerService._();
 
   static AudioPlayerService? _instance;
-  static AudioPlayer? _audioPlayer;
-  static final http.Client _httpClient = http.Client();
+  late final JsObject _audioPlayer;
+  late final http.Client _httpClient;
 
   final String _apiBaseUrl = "https://api.classroom-jukebox.nightfeather.dev";
 
@@ -57,41 +65,46 @@ class AudioPlayerService extends ChangeNotifier {
   final ValueNotifier<bool> _currentSongIsPlaying = ValueNotifier(false);
   final ValueNotifier<int> _lunchBreakDividerIndex = ValueNotifier(999);
 
+  static _playerEnded() {
+    if (_instance!._songQueue.value.isEmpty) {
+      _instance!._currentSongIsPlaying.value = false;
+      _instance!._currentSong.value = null;
+      _instance!._currentPlayingSongProgress.value = 0;
+
+      _instance!._audioPlayer.callMethod("stop");
+      _instance!._audioPlayer["_src"] = "";
+
+      return;
+    }
+
+    _instance!._currentSong.value = instance._songQueue.value.first;
+    
+    _instance!._songQueue.value.removeAt(0);
+    _instance!._songQueue.notifyListeners();
+
+    _instance!._currentSongIsPlaying.value = true;
+    _instance!._currentPlayingSongProgress.value = 0;
+
+    _instance!._audioPlayer["_src"] = instance._currentSong.value!.audioSource;
+    _instance!._audioPlayer.callMethod("stop");
+    _instance!._audioPlayer.callMethod("load");
+    _instance!._audioPlayer.callMethod("play");
+  }   
+
+  static _playerTimeUpdate(int second) {
+    _instance!._currentPlayingSongProgress.value = second;
+  }  
+
   static AudioPlayerService get instance {
     if (_instance == null) {
       _instance = AudioPlayerService._();
 
-      _audioPlayer = AudioPlayer();
-      _audioPlayer!.setVolume(_instance!._currentVolume.value);
+      _playerEndedCallback = allowInterop(_playerEnded);
+      _playerTimeUpdateCallback = allowInterop(_playerTimeUpdate);
 
-      _audioPlayer!.onPlayerComplete.listen((event) async {
-        _instance!._songQueue.value.removeAt(0);
-        _instance!._songQueue.notifyListeners();
-        if (_instance!._songQueue.value.isEmpty) {
-          _instance!._currentSongIsPlaying.value = false;
-          _instance!._currentSong.value = null;
-          _instance!._currentPlayingSongProgress.value = 0;
-
-          _instance!._currentSongIsPlaying.notifyListeners();
-          _instance!._currentSong.notifyListeners();
-          _instance!._currentPlayingSongProgress.notifyListeners();
-
-          await _audioPlayer!.release();
-        } else {
-          _instance!._currentSong.value = _instance!._songQueue.value.first;
-          _instance!._currentPlayingSongProgress.value = 0;
-          _instance!._currentSongIsPlaying.value = true;
-
-          _instance!._currentSongIsPlaying.notifyListeners();
-          _instance!._currentSong.notifyListeners();
-          _instance!._currentPlayingSongProgress.notifyListeners();
-
-          await _audioPlayer!.play(UrlSource(_instance!._currentSong.value!.audioSource));
-        }
-      });
-      _audioPlayer!.onPositionChanged.listen((event) {
-        _instance!._currentPlayingSongProgress.value = event.inSeconds;
-      });
+      _instance!._httpClient = http.Client();
+      _instance!._audioPlayer = context['jsAudioPlayer'];
+      (context["Howler"] as JsObject).callMethod("volume", [_instance!._currentVolume.value]);
     }
     return _instance!;
   }
@@ -120,64 +133,32 @@ class AudioPlayerService extends ChangeNotifier {
     return _lunchBreakDividerIndex;
   }
 
-  Future setVolume(double volume) async {
+  void setVolume(double volume) {
     _currentVolume.value = volume;
-    _currentVolume.notifyListeners();
 
-    await _audioPlayer!.setVolume(volume);
+    (context["Howler"] as JsObject).callMethod("volume", [volume]);
   }
 
-  Future pause() async {
+  void pause() {
     _currentSongIsPlaying.value = false;
-    _currentSongIsPlaying.notifyListeners();
 
-    await _audioPlayer!.pause();
+    _audioPlayer.callMethod("pause");
   }
 
-  Future resume() async {
+  void resume() {
     _currentSongIsPlaying.value = true;
-    _currentSongIsPlaying.notifyListeners();
 
-    await _audioPlayer!.resume();
+    _audioPlayer.callMethod("play");
   }
 
-  Future seekTo(int second) async {
-    _currentPlayingSongProgress.value = second;
-    _currentPlayingSongProgress.notifyListeners();
-
-    await _audioPlayer!.seek(Duration(seconds: second));
+  void seekTo(int second) {
+    _audioPlayer.callMethod("seek", [second]);
   }
 
-  Future nextTrack() async {
-    await _audioPlayer!.stop();
-
-    if (_songQueue.value.isEmpty) return;
-
-    _songQueue.value.removeAt(0);
-    _songQueue.notifyListeners();
-
-    if (_songQueue.value.isEmpty) {
-      _currentSong.value = null;
-      _currentPlayingSongProgress.value = 0;
-      _currentSongIsPlaying.value = false;
-
-      _instance!._currentSongIsPlaying.notifyListeners();
-      _instance!._currentSong.notifyListeners();
-      _instance!._currentPlayingSongProgress.notifyListeners();
-
-      await _audioPlayer!.release();
-    } else {
-      _currentSong.value = _songQueue.value.first;
-      _currentPlayingSongProgress.value = 0;
-      _currentSongIsPlaying.value = true;
-
-      _currentSongIsPlaying.notifyListeners();
-      _currentSong.notifyListeners();
-      _currentPlayingSongProgress.notifyListeners();
-
-      await _audioPlayer!.play(UrlSource(_currentSong.value!.audioSource));
-    }
+  void nextTrack() {
+    _playerEnded();
   }
+
   static String formatDuration(int totalSeconds) {
     final duration = Duration(seconds: totalSeconds);
     final minutes = duration.inMinutes;

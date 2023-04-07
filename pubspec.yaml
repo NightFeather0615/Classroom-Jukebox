@@ -12,11 +12,11 @@ dependencies:
   flutter:
     sdk: flutter
 
-  audioplayers: ^3.0.1
   http: ^0.13.5
   google_fonts: ^4.0.3
   flutter_svg: ^2.0.4
   uuid: ^3.0.6
+  js: ^0.6.5
 
 dev_dependencies:
   flutter_test:

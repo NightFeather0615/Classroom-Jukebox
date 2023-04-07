@@ -40,6 +40,7 @@
   <script src="flutter.js" defer></script>
 </head>
 <body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.core.min.js" integrity="sha512-+wqa4/aOL4vwhL637A4p+6epqhUHDqpEfYJa1+PlzlMf908CSOb3xtIeKwZWh5Q0Q/R2nYUKxH4vvcQg+k8KKQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script>
     window.addEventListener('load', function(ev) {
       // Download main.dart.js
@@ -56,6 +57,30 @@
           });
         }
       });
+      Howler.autoUnlock = true;
+      window.jsAudioPlayer = new Howl({
+        src: [""],
+        format: ["webm"],
+        onseek: function() {
+          if (window.jsAudioPlayer.playing()) {
+            window.playerTimeUpdateCallback(
+              Math.floor(window.jsAudioPlayer.seek())
+            );
+          }
+        },
+        onend: function() {
+          window.playerEndedCallback();
+        }
+      });
+      setInterval(
+        () => {
+          if (window.jsAudioPlayer.playing()) {
+            window.playerTimeUpdateCallback(
+              Math.floor(window.jsAudioPlayer.seek())
+            );
+          }
+        }, 200
+      );
     });
   </script>
 </body>

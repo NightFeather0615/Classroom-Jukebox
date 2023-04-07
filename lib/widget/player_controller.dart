@@ -114,8 +114,8 @@ class ProgressBar extends StatelessWidget {
                     max: _audioPlayerService.currentSong.value == null ? 0 : _audioPlayerService.currentSong.value!.duration.toDouble(),
                     min: 0,
                     divisions: _audioPlayerService.currentSong.value == null ? 1 : _audioPlayerService.currentSong.value!.duration,
-                    onChanged: (value) async {
-                      await _audioPlayerService.seekTo(value.toInt());
+                    onChanged: (value) {
+                      _audioPlayerService.seekTo(value.toInt());
                     },
                   ),
                 ),
@@ -216,8 +216,8 @@ class _VolumeButtonState extends State<VolumeButton> {
                         max: 1.0,
                         min: 0.0,
                         divisions: 100,
-                        onChanged: (value) async {
-                          await _audioPlayerService.setVolume(value);
+                        onChanged: (value) {
+                          _audioPlayerService.setVolume(value);
                         }
                       ),
                     ),
