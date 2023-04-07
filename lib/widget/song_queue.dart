@@ -208,40 +208,42 @@ class SongTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 14,),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                songData.title,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.zenKakuGothicNew(
-                  textStyle: const TextStyle(
-                    color: Color(0xff1d1d1f),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 16,
-                    letterSpacing: -0.6,
-                    wordSpacing: -0.2,
-                    fontFamilyFallback: ["Noto Sans"]
-                  )
-                )
-              ),
-              const SizedBox(height: 2,),
-              Text(
-                songData.channel,
-                style: GoogleFonts.zenKakuGothicNew(
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  songData.title,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.zenKakuGothicNew(
                     textStyle: const TextStyle(
-                    color: Color(0xff1d1d1f),
-                    fontWeight: FontWeight.w500,
-                    fontSize: 16,
-                    letterSpacing: -0.6,
-                    wordSpacing: -0.2,
-                    fontFamilyFallback: ["Noto Sans"]
+                      color: Color(0xff1d1d1f),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                      letterSpacing: -0.6,
+                      wordSpacing: -0.2,
+                      fontFamilyFallback: ["Noto Sans"]
+                    )
                   )
-                )
-              ),
-            ],
+                ),
+                const SizedBox(height: 2,),
+                Text(
+                  songData.channel,
+                  style: GoogleFonts.zenKakuGothicNew(
+                      textStyle: const TextStyle(
+                      color: Color(0xff1d1d1f),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                      letterSpacing: -0.6,
+                      wordSpacing: -0.2,
+                      fontFamilyFallback: ["Noto Sans"]
+                    )
+                  )
+                ),
+              ],
+            ),
           ),
-          const Spacer(),
+          const SizedBox(width: 14,),
           Text(
             AudioPlayerService.formatDuration(songData.duration),
             style: GoogleFonts.poppins(
